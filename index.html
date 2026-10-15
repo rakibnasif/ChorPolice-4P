@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8">
+  <!-- this line makes the page fit phone screens -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chor Police Babu Dakat - Online</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+Da+2:wght@500;700;800&family=Hind+Siliguri:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- PeerJS: lets the 4 phones talk to each other, no server needed -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+/* ===== Basic page ===== */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: #1c1a38;
+  color: #fbf3df;
+  font-family: "Hind Siliguri", Arial, sans-serif;
+}
+
+h1, .game-title, .btn, th, .player-score, .card-role, .card-points, .room-code {
+  font-family: "Baloo Da 2", Arial, sans-serif;
+}
+
+.container {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* ===== Buttons ===== */
+.btn {
+  background-color: #f4b41a;
+  color: #2a2552;
+  border: none;
+  border-radius: 30px;
+  padding: 12px 26px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 4px;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: #fbf3df;
+  border: 2px solid #3b3769;
+  padding: 8px 18px;
+}
+
+.btn-teal {
+  background-color: #17b3a3;
+}
+
+.btn-pink {
+  background-color: #e0356f;
+  color: white;
+}
+
+/* ===== Home and lobby screens ===== */
+#home, #lobby {
+  display: none; /* script shows the right screen */
+  min-height: 90vh;
+  justify-content: center;
+  align-items: center;
+}
+
+.setup-box {
+  width: 100%;
+  max-width: 440px;
+  background-color: #27244d;
+  border: 2px solid #3b3769;
+  border-radius: 22px;
+  padding: 28px 22px;
+  text-align: center;
+}
+
+.game-title {
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1;
+  color: #f4b41a;
+}
+
+.game-title span {
+  color: #e0356f;
+}
+
+.subtitle {
+  color: #a9a3d1;
+  margin: 12px 0 20px 0;
+}
+
+.setup-box input {
+  width: 100%;
+  padding: 13px 16px;
+  margin-bottom: 10px;
+  border: 2px solid #3b3769;
+  border-radius: 12px;
+  background-color: #1c1a38;
+  color: #fbf3df;
+  font-size: 16px;
+}
+
+.setup-box .code-input {
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 8px;
+  font-size: 22px;
+}
+
+.or-line {
+  color: #a9a3d1;
+  margin: 14px 0;
+}
+
+.status {
+  min-height: 24px;
+  margin-top: 12px;
+  color: #a9a3d1;
+}
+
+.status.error {
+  color: #ff7a9c;
+}
+
+/* lobby */
+.room-code {
+  font-size: 64px;
+  font-weight: 800;
+  letter-spacing: 10px;
+  color: #f4b41a;
+  line-height: 1.1;
+}
+
+.slot {
+  background-color: #1c1a38;
+  border: 2px dashed #3b3769;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  color: #a9a3d1;
+}
+
+.slot.filled {
+  border-style: solid;
+  border-color: #17b3a3;
+  color: #fbf3df;
+}
+
+/* ===== Game screen ===== */
+#game {
+  display: none; /* script shows it */
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.top-bar h1 {
+  font-size: 22px;
+  margin: 0;
+  color: #f4b41a;
+}
+
+/* player name boxes (2 per row on phone) */
+#chips {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.player-box {
+  background-color: #27244d;
+  border: 2px solid #3b3769;
+  border-radius: 14px;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-box.active {
+  border-color: #f4b41a;
+  background-color: #4c3e44;
+}
+
+.player-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-score {
+  font-size: 22px;
+  font-weight: 800;
+  color: #f4b41a;
+}
+
+/* message box */
+.stage {
+  background-color: #27244d;
+  border: 2px solid #3b3769;
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 16px;
+  min-height: 110px;
+  text-align: center;
+}
+
+#msg {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+#msg b {
+  color: #f4b41a;
+}
+
+/* ===== Cards ===== */
+/* 2 cards per row on phone */
+#board {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.card {
+  background: none;
+  border: none;
+  padding: 0;
+  aspect-ratio: 3 / 4;
+  perspective: 900px; /* needed for the 3D flip */
+  user-select: none;  /* stops text selection when holding */
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+/* the part that rotates */
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+/* when the card has class "flip", rotate it */
+.card.flip .card-inner {
+  transform: rotateY(180deg);
+}
+
+/* front and back sit on top of each other */
+.card-front, .card-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  backface-visibility: hidden; /* hide the side facing away */
+  -webkit-backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.card-front {
+  background-color: #fbf3df;
+  color: #2a2552;
+  border: 3px solid #f4b41a;
+}
+
+/* my own card has a teal border so I can find it */
+.card.mine .card-front {
+  border-color: #17b3a3;
+}
+
+/* the cards Police is allowed to pick */
+.card.can-click {
+  cursor: pointer;
+}
+
+.card.can-click .card-front {
+  box-shadow: 0 0 0 4px #e0356f;
+}
+
+.card.can-click:hover {
+  transform: translateY(-4px);
+}
+
+.card-question {
+  font-size: 50px;
+  font-weight: 800;
+  color: #e0356f;
+}
+
+.card-owner {
+  font-weight: bold;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-back {
+  transform: rotateY(180deg);
+  color: white;
+  border: 3px solid rgba(255, 255, 255, 0.5);
+}
+
+.card-role {
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.card-points {
+  font-size: 38px;
+  font-weight: 800;
+}
+
+.card-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-tag {
+  font-size: 13px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  padding: 2px 10px;
+}
+
+/* each role has its own colour */
+.Babu .card-back {
+  background-color: #c98f0a;
+}
+
+.Police .card-back {
+  background-color: #0f8a7e;
+}
+
+.Dakat .card-back {
+  background-color: #e0356f;
+}
+
+.Chor .card-back {
+  background-color: #6f6aa8;
+}
+
+.card.lost .card-back {
+  filter: brightness(0.6);
+}
+
+/* ===== Score table ===== */
+.table-wrap {
+  overflow-x: auto;
+  background-color: #27244d;
+  border: 2px solid #3b3769;
+  border-radius: 16px;
+}
+
+table {
+  width: 100%;
+  min-width: 420px;
+  border-collapse: collapse;
+  text-align: center;
+}
+
+th, td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #3b3769;
+}
+
+th {
+  color: #f4b41a;
+}
+
+tfoot td {
+  font-weight: bold;
+  color: #f4b41a;
+  border-bottom: none;
+}
+
+.empty {
+  color: #a9a3d1;
+}
+
+/* ===== Summary ===== */
+#sumBox {
+  display: none; /* script shows it */
+  margin-top: 16px;
+  background-color: #27244d;
+  border: 2px solid #f4b41a;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+#sumBox h2 {
+  color: #f4b41a;
+  margin-top: 0;
+}
+
+.rank-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #3b3769;
+}
+
+.rank-row b {
+  color: #e0356f;
+}
+
+/* ===== Big screens: 4 per row ===== */
+@media (min-width: 700px) {
+  #chips {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  #board {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+
+  .game-title {
+    font-size: 56px;
+  }
+}
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Screen 1: your name, create a room or join one -->
+    <section id="home">
+      <div class="setup-box">
+        <div class="game-title">Chor Police<br><span>Babu Dakat</span></div>
+        <p class="subtitle">Babu hukum dey, Police chhute, Chor-Dakat mukh lukay. Aaj kar mukh dhora porbe?</p>
+
+        <input id="nameInput" placeholder="Tomar naam" maxlength="14">
+        <button class="btn" id="createBtn">Room banao</button>
+
+        <div class="or-line">ba, bondhur room e dhuko</div>
+
+        <input id="codeInput" class="code-input" placeholder="CODE" maxlength="4">
+        <button class="btn btn-teal" id="joinBtn">Room e join koro</button>
+
+        <div class="status" id="homeStatus"></div>
+      </div>
+    </section>
+
+    <!-- Screen 2: waiting room -->
+    <section id="lobby">
+      <div class="setup-box">
+        <div class="subtitle" style="margin-top:0">Room code</div>
+        <div class="room-code" id="lobbyCode">----</div>
+        <p class="subtitle">Ei code ta baki 3 jon ke pathao. 4 jon hole game shuru hobe.</p>
+        <div id="slots"></div>
+        <div id="lobbyActs"></div>
+      </div>
+    </section>
+
+    <!-- Screen 3: the game -->
+    <section id="game">
+      <div class="top-bar">
+        <h1>Chor Police Babu Dakat</h1>
+        <button class="btn btn-outline" id="sumBtn">Summary</button>
+      </div>
+
+      <div id="chips"></div>
+
+      <div class="stage">
+        <div id="msg"></div>
+        <div id="acts"></div>
+      </div>
+
+      <div id="board"></div>
+
+      <div class="table-wrap">
+        <table>
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+          <tfoot id="tfoot"></tfoot>
+        </table>
+      </div>
+
+      <div id="sumBox"></div>
+    </section>
+
+  </div>
+  <script>
+// =====================================================
+//  HOW THIS WORKS
+//  - One phone is the HOST. The host keeps the real game
+//    data (who has which role) and does all the checking.
+//  - The other 3 phones are GUESTS. They send their
+//    actions (ready, order, guess) to the host.
+//  - After every action the host sends each player ONLY
+//    what that player is allowed to see. So nobody can
+//    find out another player's card by cheating.
+// =====================================================
+
+// ===== Game data =====
+var points = { Babu: 100, Police: 80, Dakat: 60, Chor: 40 };
+var roleNames = ["Babu", "Police", "Dakat", "Chor"];
+var ranks = ["Raja", "Minister", "Proja", "Slave"];
+
+// ===== Connection data =====
+var peer = null;                            // my PeerJS connection
+var isHost = false;                         // true on the phone that made the room
+var roomCode = "";                          // 4 letter room code
+var myName = "";                            // my name
+var hostConn = null;                        // (guest) connection to the host
+var guestConns = [null, null, null, null];  // (host) connection of each player, 0 = host himself
+var guestConnected = false;                 // (guest) did we reach the host?
+var game = null;                            // (host only) the real game data
+
+// ===== Screen data =====
+var lastView = null;     // last thing the host sent me
+var myPeeking = false;   // am I holding my card right now?
+var peekedRound = -1;    // which round did I already peek in
+var boardBuilt = false;  // are the 4 cards created?
+var shownRound = -1;     // which round is on screen
+
+// ===== Small helper functions =====
+function getEl(id) {
+  return document.getElementById(id);
+}
+
+// stops names like <b> from breaking the page
+function safe(text) {
+  text = String(text);
+  text = text.replace(/&/g, "&amp;");
+  text = text.replace(/</g, "&lt;");
+  text = text.replace(/>/g, "&gt;");
+  return text;
+}
+
+function bold(text) {
+  return "<b>" + safe(text) + "</b>";
+}
+
+// mixes the list in random order
+function shuffle(list) {
+  var result = list.slice();
+  for (var i = result.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var temp = result[i];
+    result[i] = result[j];
+    result[j] = temp;
+  }
+  return result;
+}
+
+// show one screen, hide the others
+function showScreen(name) {
+  getEl("home").style.display = "none";
+  getEl("lobby").style.display = "none";
+  getEl("game").style.display = "none";
+  if (name == "game") {
+    getEl("game").style.display = "block";
+  } else {
+    getEl(name).style.display = "flex";
+  }
+}
+
+function setStatus(text, isError) {
+  var el = getEl("homeStatus");
+  el.textContent = text;
+  if (isError) {
+    el.className = "status error";
+  } else {
+    el.className = "status";
+  }
+}
+
+function showError(text) {
+  showScreen("home");
+  setStatus(text, true);
+  getEl("createBtn").disabled = false;
+  getEl("joinBtn").disabled = false;
+}
+
+function getName() {
+  var name = getEl("nameInput").value.trim();
+  if (name == "") {
+    name = "Player";
+  }
+  return name.slice(0, 14);
+}
+
+// =====================================================
+//  PART 1: CREATE ROOM (host)
+// =====================================================
+function makeCode() {
+  var letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  var code = "";
+  for (var i = 0; i < 4; i++) {
+    code += letters.charAt(Math.floor(Math.random() * letters.length));
+  }
+  return code;
+}
+
+function createRoom() {
+  if (typeof Peer == "undefined") {
+    showError("PeerJS load hoyni. Internet check kore page reload koro.");
+    return;
+  }
+  myName = getName();
+  isHost = true;
+  getEl("createBtn").disabled = true;
+  getEl("joinBtn").disabled = true;
+  setStatus("Room toiri hocche...", false);
+  openRoom(0);
+}
+
+// tries to open a room with a random code (tries again if the code is taken)
+function openRoom(tries) {
+  roomCode = makeCode();
+  peer = new Peer("cpbd-" + roomCode);
+
+  peer.on("open", function () {
+    newGame();
+    sendAll(); // shows the lobby
+  });
+
+  peer.on("connection", function (conn) {
+    onGuestConnect(conn);
+  });
+
+  peer.on("disconnected", function () {
+    peer.reconnect(); // lost the PeerJS server for a moment, connect again
+  });
+
+  peer.on("error", function (err) {
+    if (err.type == "unavailable-id" && tries < 5) {
+      peer.destroy();
+      openRoom(tries + 1);
+    } else {
+      showError("Room banano gelo na: " + err.type);
+    }
+  });
+}
+
+// the real game data lives here (host only)
+function newGame() {
+  game = {
+    names: ["", "", "", ""],      // player names, "" = empty seat
+    totals: [0, 0, 0, 0],         // total score of each player
+    rows: [],                     // one entry per finished round
+    roles: [],                    // roles[i] = role of player i
+    phase: "lobby",               // lobby, deal, order, guess, done
+    ready: [false, false, false, false],
+    target: "",                   // "Chor" or "Dakat" (Babu's order)
+    result: null,                 // result of the finished round
+    round: 0,
+    notice: ""                    // message if someone leaves
+  };
+  game.names[0] = myName;
+}
+
+// a guest phone connected to us
+function onGuestConnect(conn) {
+  conn.playerIndex = -1;
+
+  conn.on("data", function (msg) {
+    if (!msg || typeof msg != "object") {
+      return;
+    }
+    if (msg.type == "join" && conn.playerIndex == -1) {
+      joinGuest(conn, msg);
+      return;
+    }
+    if (conn.playerIndex > 0) {
+      handleMessage(conn.playerIndex, msg);
+    }
+  });
+
+  conn.on("close", function () {
+    guestLeft(conn);
+  });
+}
+
+function rejectGuest(conn, reason) {
+  conn.send({ type: "rejected", reason: reason });
+  setTimeout(function () {
+    conn.close();
+  }, 500);
+}
+
+// give the guest a free seat (1, 2 or 3)
+function joinGuest(conn, msg) {
+  if (game.phase != "lobby") {
+    rejectGuest(conn, "Game already shuru hoye geche.");
+    return;
+  }
+  var seat = -1;
+  for (var i = 1; i < 4; i++) {
+    if (game.names[i] == "" && seat == -1) {
+      seat = i;
+    }
+  }
+  if (seat == -1) {
+    rejectGuest(conn, "Room full, 4 jon already ache.");
+    return;
+  }
+  var name = String(msg.name || "").trim().slice(0, 14);
+  if (name == "") {
+    name = "Player " + (seat + 1);
+  }
+  conn.playerIndex = seat;
+  guestConns[seat] = conn;
+  game.names[seat] = name;
+  sendAll();
+}
+
+function guestLeft(conn) {
+  var i = conn.playerIndex;
+  if (i < 1 || guestConns[i] !== conn) {
+    return;
+  }
+  guestConns[i] = null;
+  if (game.phase == "lobby") {
+    game.names[i] = ""; // seat is free again
+  } else {
+    game.notice = game.names[i] + " game theke ber hoye geche. Notun kore khelte sobai page reload koro.";
+  }
+  sendAll();
+}
+
+// =====================================================
+//  PART 2: JOIN ROOM (guest)
+// =====================================================
+function joinRoom() {
+  var code = getEl("codeInput").value.trim().toUpperCase();
+  if (code.length != 4) {
+    setStatus("4 okkhor er room code likho.", true);
+    return;
+  }
+  if (typeof Peer == "undefined") {
+    showError("PeerJS load hoyni. Internet check kore page reload koro.");
+    return;
+  }
+  myName = getName();
+  isHost = false;
+  guestConnected = false;
+  getEl("createBtn").disabled = true;
+  getEl("joinBtn").disabled = true;
+  setStatus("Connect hocche...", false);
+
+  // give up after 12 seconds
+  var timer = setTimeout(function () {
+    if (!guestConnected) {
+      showError("Connect hoyni. Code thik ache? Internet check koro.");
+    }
+  }, 12000);
+
+  peer = new Peer();
+
+  peer.on("open", function () {
+    hostConn = peer.connect("cpbd-" + code, { reliable: true });
+
+    hostConn.on("open", function () {
+      guestConnected = true;
+      clearTimeout(timer);
+      hostConn.send({ type: "join", name: myName });
+    });
+
+    hostConn.on("data", function (msg) {
+      onHostMessage(msg);
+    });
+
+    hostConn.on("close", function () {
+      if (guestConnected) {
+        showHostLeft();
+      }
+    });
+  });
+
+  peer.on("error", function (err) {
+    clearTimeout(timer);
+    if (err.type == "peer-unavailable") {
+      showError("Ei code e kono room nai.");
+    } else {
+      showError("Connection e shomossha: " + err.type);
+    }
+  });
+}
+
+function onHostMessage(msg) {
+  if (!msg || typeof msg != "object") {
+    return;
+  }
+  if (msg.type == "view") {
+    render(msg.view);
+  }
+  if (msg.type == "rejected") {
+    showError(msg.reason);
+    peer.destroy();
+  }
+}
+
+function showHostLeft() {
+  showScreen("game");
+  getEl("msg").innerHTML = "Host disconnect hoye geche. Notun kore khelte page reload koro.";
+  getEl("acts").innerHTML = "";
+}
+
+// =====================================================
+//  PART 3: GAME RULES (host only)
+// =====================================================
+
+// every player sends actions here. p = player number (0 to 3)
+function handleMessage(p, msg) {
+  if (game.notice != "") {
+    return; // someone left, the game is stopped
+  }
+
+  // host starts the game from the lobby
+  if (msg.type == "start" && p == 0 && game.phase == "lobby") {
+    var seats = 0;
+    for (var i = 0; i < 4; i++) {
+      if (game.names[i] != "") seats++;
+    }
+    if (seats == 4) {
+      startRound();
+    }
+    return;
+  }
+
+  // host starts the next round
+  if (msg.type == "next" && p == 0 && game.phase == "done") {
+    startRound();
+    return;
+  }
+
+  // a player has seen his card
+  if (msg.type == "ready" && game.phase == "deal") {
+    game.ready[p] = true;
+    var all = true;
+    for (var k = 0; k < 4; k++) {
+      if (!game.ready[k]) all = false;
+    }
+    if (all) {
+      game.phase = "order"; // Babu and Police are revealed now
+    }
+    sendAll();
+    return;
+  }
+
+  // Babu orders: find the Chor or the Dakat
+  if (msg.type == "order" && game.phase == "order" && game.roles[p] == "Babu") {
+    if (msg.choice == "Chor" || msg.choice == "Dakat") {
+      game.target = msg.choice;
+      game.phase = "guess";
+      sendAll();
+    }
+    return;
+  }
+
+  // Police picks a card
+  if (msg.type == "guess" && game.phase == "guess" && game.roles[p] == "Police") {
+    var chosen = msg.index;
+    if (chosen === 0 || chosen === 1 || chosen === 2 || chosen === 3) {
+      if (chosen != p && game.roles[chosen] != "Babu") {
+        finishRound(chosen);
+      }
+    }
+    return;
+  }
+}
+
+// new round: shuffle the roles, one role for each player
+function startRound() {
+  game.roles = shuffle(roleNames);
+  game.ready = [false, false, false, false];
+  game.target = "";
+  game.result = null;
+  game.phase = "deal";
+  game.round++;
+  sendAll();
+}
+
+// Police guessed: calculate points
+function finishRound(chosen) {
+  var correct = (game.roles[chosen] == game.target);
+  var roundPoints = [0, 0, 0, 0];
+
+  // everyone gets the points of their role
+  for (var i = 0; i < 4; i++) {
+    roundPoints[i] = points[game.roles[i]];
+  }
+
+  var policeIdx = game.roles.indexOf("Police");
+  var targetIdx = game.roles.indexOf(game.target);
+
+  if (correct) {
+    roundPoints[targetIdx] = 0;   // caught! Chor/Dakat gets 0
+  } else {
+    roundPoints[policeIdx] = 0;   // wrong guess! Police gets 0
+  }
+
+  for (var p = 0; p < 4; p++) {
+    game.totals[p] = game.totals[p] + roundPoints[p];
+  }
+
+  game.rows.push({ target: game.target, pts: roundPoints });
+  game.result = {
+    roles: game.roles.slice(),
+    correct: correct,
+    policeIdx: policeIdx,
+    targetIdx: targetIdx,
+    roundPoints: roundPoints
+  };
+  game.phase = "done";
+  sendAll();
+}
+
+// what player p is allowed to see (never other people's roles)
+function buildView(p) {
+  var view = {
+    phase: game.phase,
+    code: roomCode,
+    myIndex: p,
+    names: game.names.slice(),
+    totals: game.totals.slice(),
+    rows: game.rows,
+    round: game.round,
+    ready: game.ready.slice(),
+    target: game.target,
+    notice: game.notice,
+    myRole: "",
+    babuIndex: -1,
+    policeIndex: -1,
+    result: null
+  };
+
+  if (game.phase != "lobby") {
+    view.myRole = game.roles[p];   // you may see your own card
+  }
+  if (game.phase == "order" || game.phase == "guess" || game.phase == "done") {
+    view.babuIndex = game.roles.indexOf("Babu");     // these two are shown to everyone
+    view.policeIndex = game.roles.indexOf("Police");
+  }
+  if (game.phase == "done") {
+    view.result = game.result;     // everything is shown at the end of the round
+  }
+  return view;
+}
+
+// send every player his own view (host draws his own screen directly)
+function sendAll() {
+  for (var p = 0; p < 4; p++) {
+    var view = buildView(p);
+    if (p == 0) {
+      render(view);
+    } else if (guestConns[p] && guestConns[p].open) {
+      guestConns[p].send({ type: "view", view: view });
+    }
+  }
+}
+
+// a player does something (host does it directly, guest sends it to the host)
+function sendToHost(msg) {
+  if (isHost) {
+    handleMessage(0, msg);
+  } else if (hostConn && hostConn.open) {
+    hostConn.send(msg);
+  }
+}
+
+// =====================================================
+//  PART 4: DRAWING THE SCREEN (everyone)
+// =====================================================
+function render(view) {
+  lastView = view;
+  if (view.phase == "lobby") {
+    drawLobby(view);
+    showScreen("lobby");
+  } else {
+    showScreen("game");
+    drawGame(view);
+  }
+}
+
+// ----- lobby -----
+function drawLobby(view) {
+  getEl("lobbyCode").textContent = view.code;
+
+  var html = "";
+  var seats = 0;
+  for (var i = 0; i < 4; i++) {
+    if (view.names[i] != "") {
+      seats++;
+      var you = "";
+      if (i == view.myIndex) you = " (tumi)";
+      html += '<div class="slot filled">' + safe(view.names[i]) + you + '</div>';
+    } else {
+      html += '<div class="slot">Opekkha korchi...</div>';
+    }
+  }
+  getEl("slots").innerHTML = html;
+
+  if (view.myIndex == 0) {
+    var disabledText = "";
+    if (seats < 4) disabledText = " disabled";
+    getEl("lobbyActs").innerHTML = '<button class="btn" id="startBtn"' + disabledText + '>Game shuru koro</button>';
+    getEl("startBtn").onclick = function () {
+      sendToHost({ type: "start" });
+    };
+  } else {
+    getEl("lobbyActs").innerHTML = "<p class='subtitle'>Host game shuru korle shuru hobe.</p>";
+  }
+}
+
+// ----- game -----
+function drawGame(view) {
+  if (!boardBuilt) {
+    buildBoard();
+  }
+  // new round: hide old summary, forget old peek
+  if (view.round != shownRound) {
+    shownRound = view.round;
+    getEl("sumBox").style.display = "none";
+    myPeeking = false;
+  }
+  drawPlayers(view);
+  drawMessage(view);
+  drawCards(view);
+  drawTableHead(view);
+  drawTable(view);
+}
+
+// create the 4 cards one time. Card i belongs to player i.
+function buildBoard() {
+  var html = "";
+  for (var i = 0; i < 4; i++) {
+    html += '<button class="card" id="card' + i + '">';
+    html += '<div class="card-inner">';
+    html += '<div class="card-front"><div class="card-question" id="q' + i + '">?</div><div class="card-owner" id="owner' + i + '"></div></div>';
+    html += '<div class="card-back">';
+    html += '<div class="card-role" id="role' + i + '"></div>';
+    html += '<div class="card-points" id="pts' + i + '"></div>';
+    html += '<div class="card-name" id="cname' + i + '"></div>';
+    html += '<div class="card-tag" id="tag' + i + '" hidden></div>';
+    html += '</div></div></button>';
+  }
+  getEl("board").innerHTML = html;
+  for (var k = 0; k < 4; k++) {
+    setupCard(k);
+  }
+  boardBuilt = true;
+}
+
+// connect click and hold events to one card
+function setupCard(i) {
+  var card = getEl("card" + i);
+  card.onclick = function () {
+    cardClicked(i);
+  };
+  card.oncontextmenu = function () {
+    return false; // no long-press menu on phone
+  };
+  card.onpointerdown = function () {
+    startPeek(i);
+  };
+  card.onpointerup = function () {
+    stopPeek();
+  };
+  card.onpointerleave = function () {
+    stopPeek();
+  };
+  card.onpointercancel = function () {
+    stopPeek();
+  };
+}
+
+// is card i shown to everyone?
+function isRevealed(view, i) {
+  if (view.phase == "done") return true;
+  if (view.phase == "order" || view.phase == "guess") {
+    if (i == view.babuIndex || i == view.policeIndex) return true;
+  }
+  return false;
+}
+
+// finger down on MY card: show my role
+function startPeek(i) {
+  if (!lastView || lastView.phase == "lobby") return;
+  if (i != lastView.myIndex) return;
+  if (isRevealed(lastView, i)) return;
+  myPeeking = true;
+  if (lastView.phase == "deal") {
+    peekedRound = lastView.round;
+    var readyBtn = getEl("readyBtn");
+    if (readyBtn) {
+      readyBtn.disabled = false;
+    }
+  }
+  drawCards(lastView);
+}
+
+// finger up: hide my card again
+function stopPeek() {
+  if (!myPeeking) return;
+  myPeeking = false;
+  if (lastView) {
+    drawCards(lastView);
+  }
+}
+
+// Police taps a card to guess
+function cardClicked(i) {
+  var v = lastView;
+  if (!v || v.notice != "") return;
+  if (v.phase == "guess" && v.myIndex == v.policeIndex) {
+    if (i != v.babuIndex && i != v.policeIndex) {
+      sendToHost({ type: "guess", index: i });
+    }
+  }
+}
+
+// ----- player boxes -----
+function drawPlayers(view) {
+  var html = "";
+  for (var i = 0; i < 4; i++) {
+    var active = false;
+    if (view.phase == "deal" && !view.ready[i]) active = true;
+    if (view.phase == "order" && i == view.babuIndex) active = true;
+    if (view.phase == "guess" && i == view.policeIndex) active = true;
+
+    var you = "";
+    if (i == view.myIndex) you = " (tumi)";
+    var cls = "player-box";
+    if (active) cls += " active";
+
+    html += '<div class="' + cls + '">';
+    html += '<span class="player-name">' + safe(view.names[i]) + you + '</span>';
+    html += '<span class="player-score">' + view.totals[i] + '</span>';
+    html += '</div>';
+  }
+  getEl("chips").innerHTML = html;
+}
+
+// ----- message and buttons -----
+function drawMessage(view) {
+  var me = view.myIndex;
+  var msg = "";
+  var acts = "";
+
+  if (view.notice != "") {
+    msg = safe(view.notice);
+  }
+
+  else if (view.phase == "deal") {
+    if (!view.ready[me]) {
+      msg = bold(view.names[me]) + ", tomar card ta <b>chepe dhoro</b> dekhte. Chere dile lukiye jabe.";
+      var disabledText = "";
+      if (peekedRound != view.round) disabledText = " disabled";
+      acts = '<button class="btn" id="readyBtn"' + disabledText + '>Dekhechi, ready</button>';
+    } else {
+      var count = 0;
+      for (var i = 0; i < 4; i++) {
+        if (view.ready[i]) count++;
+      }
+      msg = "Baki der opekkha korchi... <b>" + count + "/4</b> jon ready.";
+    }
+  }
+
+  else if (view.phase == "order") {
+    var babuName = view.names[view.babuIndex];
+    var policeName = view.names[view.policeIndex];
+    if (me == view.babuIndex) {
+      msg = bold(babuName) + " (Babu), " + bold(policeName) + " ke bolo kake khujte hobe:";
+      acts = '<button class="btn btn-teal" id="chorBtn">Find the Chor</button>' +
+             '<button class="btn btn-pink" id="dakatBtn">Find the Dakat</button>';
+    } else {
+      msg = bold(babuName) + " (Babu) hukum dichhe " + bold(policeName) + " (Police) ke. Mukh shamlao!";
+    }
+  }
+
+  else if (view.phase == "guess") {
+    var pName = view.names[view.policeIndex];
+    if (me == view.policeIndex) {
+      msg = bold(pName) + " (Police), <b>" + view.target + "</b> ke dhoro. Je card e tomar sondeho, oita chapo.";
+    } else {
+      msg = bold(pName) + " (Police) <b>" + view.target + "</b> khujche. Mukh shamlao!";
+    }
+  }
+
+  else if (view.phase == "done") {
+    var r = view.result;
+    var policeN = view.names[r.policeIdx];
+    var targetN = view.names[r.targetIdx];
+    if (r.correct) {
+      msg = bold(policeN) + " dhorlo " + bold(targetN) + " ke (" + view.target + "). " + bold(targetN) + " pelo 0.";
+    } else {
+      msg = bold(policeN) + " bhul card tulche. Police pelo 0, " + bold(targetN) + " er " + view.target + " nijer point rakhlo.";
+    }
+    if (me == 0) {
+      acts = '<button class="btn" id="nextBtn">Next round</button>';
+    } else {
+      acts = "<div class='subtitle'>Host next round shuru korle notun card pabe.</div>";
+    }
+  }
+
+  getEl("msg").innerHTML = msg;
+  getEl("acts").innerHTML = acts;
+
+  // connect the buttons we just created
+  if (getEl("readyBtn")) {
+    getEl("readyBtn").onclick = function () {
+      sendToHost({ type: "ready" });
+    };
+  }
+  if (getEl("chorBtn")) {
+    getEl("chorBtn").onclick = function () {
+      sendToHost({ type: "order", choice: "Chor" });
+    };
+    getEl("dakatBtn").onclick = function () {
+      sendToHost({ type: "order", choice: "Dakat" });
+    };
+  }
+  if (getEl("nextBtn")) {
+    getEl("nextBtn").onclick = function () {
+      sendToHost({ type: "next" });
+    };
+  }
+}
+
+// ----- the 4 cards -----
+function drawCards(view) {
+  for (var i = 0; i < 4; i++) {
+    var revealed = isRevealed(view, i);
+
+    // which role can this phone show on card i?
+    var known = "";
+    if (view.result) {
+      known = view.result.roles[i];
+    } else if (i == view.babuIndex) {
+      known = "Babu";
+    } else if (i == view.policeIndex) {
+      known = "Police";
+    } else if (i == view.myIndex) {
+      known = view.myRole;    // only my own card
+    }
+
+    // did this player lose his points this round?
+    var lost = false;
+    if (view.result) {
+      if (view.result.correct && i == view.result.targetIdx) lost = true;
+      if (!view.result.correct && i == view.result.policeIdx) lost = true;
+    }
+
+    // is the card turned over?
+    var flip = revealed;
+    if (i == view.myIndex && myPeeking && view.phase != "done") flip = true;
+
+    // can Police pick this card?
+    var canClick = false;
+    if (view.phase == "guess" && view.myIndex == view.policeIndex && view.notice == "") {
+      if (i != view.babuIndex && i != view.policeIndex) canClick = true;
+    }
+
+    // build the class list
+    var cls = "card";
+    if (known != "") cls += " " + known;
+    if (flip) cls += " flip";
+    if (lost) cls += " lost";
+    if (i == view.myIndex) cls += " mine";
+    if (canClick) cls += " can-click";
+    getEl("card" + i).className = cls;
+
+    // front side
+    var you = "";
+    if (i == view.myIndex) you = " (tumi)";
+    getEl("owner" + i).textContent = view.names[i] + you;
+    if (i == view.myIndex && !revealed) {
+      getEl("q" + i).textContent = "Hold";
+      getEl("q" + i).style.fontSize = "28px";
+    } else {
+      getEl("q" + i).textContent = "?";
+      getEl("q" + i).style.fontSize = "";
+    }
+
+    // back side
+    getEl("role" + i).textContent = known;
+    var pts = "";
+    if (known != "") pts = points[known];
+    if (view.result) pts = view.result.roundPoints[i];
+    getEl("pts" + i).textContent = pts;
+    getEl("cname" + i).textContent = view.names[i];
+
+    var tag = getEl("tag" + i);
+    if (lost) {
+      tag.hidden = false;
+      if (view.result.correct) {
+        tag.textContent = "Caught";
+      } else {
+        tag.textContent = "Wrong guess";
+      }
+    } else {
+      tag.hidden = true;
+    }
+  }
+}
+
+// ----- score table -----
+function drawTableHead(view) {
+  var html = "<tr><th>#</th><th>Find</th>";
+  for (var i = 0; i < 4; i++) {
+    html += "<th>" + safe(view.names[i]) + "</th>";
+  }
+  html += "</tr>";
+  getEl("thead").innerHTML = html;
+}
+
+function drawTable(view) {
+  var html = "";
+  if (view.rows.length == 0) {
+    html = '<tr><td colspan="6" class="empty">Prothom round sesh hole score ekhane ashbe.</td></tr>';
+  }
+  for (var i = 0; i < view.rows.length; i++) {
+    html += "<tr><td>" + (i + 1) + "</td><td>" + view.rows[i].target + "</td>";
+    for (var j = 0; j < 4; j++) {
+      html += "<td>" + view.rows[i].pts[j] + "</td>";
+    }
+    html += "</tr>";
+  }
+  getEl("tbody").innerHTML = html;
+
+  var foot = '<tr><td colspan="2">Total</td>';
+  for (var k = 0; k < 4; k++) {
+    foot += "<td>" + view.totals[k] + "</td>";
+  }
+  foot += "</tr>";
+  getEl("tfoot").innerHTML = foot;
+}
+
+// ----- summary: final ranking -----
+function showSummary() {
+  if (!lastView) return;
+  var view = lastView;
+  var list = [];
+  for (var i = 0; i < 4; i++) {
+    // rank = how many players have a higher score
+    var higher = 0;
+    for (var j = 0; j < 4; j++) {
+      if (view.totals[j] > view.totals[i]) higher++;
+    }
+    list.push({ name: view.names[i], score: view.totals[i], rank: ranks[higher] });
+  }
+  list.sort(function (a, b) {
+    return b.score - a.score;
+  });
+
+  var html = "<h2>Summary after " + view.rows.length + " round(s)</h2>";
+  for (var k = 0; k < list.length; k++) {
+    html += '<div class="rank-row"><span>' + safe(list[k].name) + '</span>';
+    html += '<span>' + list[k].score + ' pts &nbsp;<b>' + list[k].rank + '</b></span></div>';
+  }
+  getEl("sumBox").innerHTML = html;
+  getEl("sumBox").style.display = "block";
+}
+
+// ===== Connect the main buttons =====
+getEl("createBtn").onclick = createRoom;
+getEl("joinBtn").onclick = joinRoom;
+getEl("sumBtn").onclick = showSummary;
+showScreen("home");
+</script>
+</body>
+</html>
